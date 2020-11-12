@@ -140,20 +140,18 @@ There are a fixed set of 25 types defined by core-R. They are listed below, cate
 
 ## Names Have Objects, Objects Don't Have Names
 
-*The primary purpose of programming in R is the creation and manipulation of objects.* R is at heart a functional programming language, and hence the process by which this works is applying functions to objects to yield new objects. Successive applications of a series of functions produces the desired manipulation of the input objects. 
+*The primary purpose of programming in R is the creation and manipulation of objects.* 
 
-As an example consider a function object, which is created by the evaluation of an expression of the form
+This computational model requires a mechanism to reference objects once they have been created in order to manipulate them. 
 
-```{r, eval = FALSE}
-function(formal arguments) body
-```
+Consider a function object
 
-Thus consider the function
 ```{r}
 function(x) x^2
 ```
 
-Now suppose we want to modify the function in some fashion, for example set a default value of the formal argument `x`. We need a way to reference the object in subsequent computations. Where does the function live? How can we manipulate it?
+
+We need a way to reference the object in subsequent computations. Where does the function object live? How can we manipulate it?
 
 The simple answer is that objects live in computer memory. A value of a computation in general is an object residing in memory. The object's identity as a memory address, e.g, the object's *identifier* can be recovered by `lobstr::addr()`
 
@@ -299,6 +297,57 @@ lobstr::obj_addr(1:10)
 ```
 
 ## Everything that Happens in R is the Result of A Function Call.
+R is at heart a functional programming language, and hence the process by which this works is applying functions to objects to yield new objects. Successive applications of a series of functions yields a series of modified objects whose end point is the desired manipulation of the original objects. 
+
+This is a computational parallel of mathematical functions: $y = f(x)$. A function `f` in R is a *pure function* if it behaves like a mathematical function.
+
+>A pure function in R is completely specified by the value returned from a call to that function, for every possible value of the function's arguments
+---Chambers (p.44)
+
+The key distinction is that the "arguments" in an R function `f` are objects. The function `f` takes objects as input arguments and *returns another object* as the *value* of the function call. 
+
+Thus function `f` take objects and return new objects as a value of calling a function. 
+
+As an example consider a function object, which is created by the evaluation of an expression of the form
+
+```{r, eval = FALSE}
+function(formal arguments) body
+```
+
+Thus consider the function
+```{r}
+f_original <- function(x) x^2
+```
+
+Now suppose we want to modify the function in some fashion, for example set a default value of the formal argument `x`. We can design a function
+
+```{r}
+f <- function(func) {body(func) <- quote(x^3); func}
+```
+
+Applying the function to our function of interest
+
+```{r}
+f_new <- f(f_original)
+typeof(f_new)
+```
+```{r}
+lobstr::obj_addr(f_original)
+lobstr::obj_addr(f_new)
+```
+Now suppose we create a function that does not modify the original object
+```{r}
+g <- function(x) x
+```
+
+And we try the same experiment again:
+```{r}
+f_new <- g(f_original)
+lobstr::obj_addr(f_original)
+lobstr::obj_addr(f_new)
+```
+
+
 
 This the central computation through which this happens is the *evaluation* of a *function call* - which is defined by 
 1. the function itself (an object) 
