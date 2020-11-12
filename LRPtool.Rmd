@@ -1,0 +1,15 @@
+---
+title: "The LRP Tool - software to solve problems"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+> The complexity of the data processes and of the computations applied to them mean that those who receive the results of the modern data analysis have limited opportunity to verify results by direct observations. Both the data analyst and the software provider therefore have a strong responsibility to produce a result that is trustworthy, and, if possible, one that can be shown to be trustworthy...This is the second principle: the computations and the software for data analysis should be trustworthy: they should do what they claim, and be seen to do so. 
+>
+>---John Chambers
+
+

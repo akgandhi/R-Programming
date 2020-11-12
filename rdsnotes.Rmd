@@ -1,0 +1,57 @@
+---
+title: "ggplot"
+output: html_document
+---
+>The greatest value of a picture is when 
+>it forces us to notice what we never expected to see.
+>`r tufte::quote_footer('John Tukey')`
+
+To put formatted R code in the text as such `ggplot()`, we use delimiters ` `` `. We can also evaluate the R code inline by using the format \"r+code" inside the delimitted text. 
+
+We load the mpg data set.
+```{r message=FALSE}
+library(tidyverse)
+mpg
+```
+
+A key idea behind the `ggolot` grammar of graphics lies in its syntax:
+```{r eval=FALSE}
+ggplot(data = <DATA>) +
+  <GEOM_FUNCTION>(mapping = aes(<MAPPINGS>))
+```
+
+After defining the data set with `data = <DATA>`, the additional layer is `<GEOM_FUNCTION>(mapping = aes(<MAPPINGS>))`. The type of plot if established by `<GEOM_FUNCTION>`. To establish the aesthetics of how the data is to appear under this plot type, the `mapping` argument maps aesthetic elements that are relevant to the plot type, to specific variables in the data. For example
+
+```{r}
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy, color = manufacturer))
+```
+
+If on the other hand there is an aesthetic of the plot we wish to set which is a global feature and not tied to the presentation of a specific variable in the plot, it would appear as an argument outside of `mapping`. For example
+
+```{r}
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy), color = "blue")
+```
+It is also possible to simply embed the plot in the text as such (supressing the R code)
+```{r echo=FALSE}
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy), color = "blue")
+```
+
+One way we have seen above to get information about additional variables in a plot is through aesthetics. Another approach is to break the plot into sub-plots, or *facets*. We can achieve this through `facet_wrap()` which is a layer in `ggplot` that takes a formula as an argument which must isolate categorical variables. Thus
+
+```{r}
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy), color = "blue") +
+  facet_wrap(~manufacturer, nrow = 1)
+```
+
+Or, alternatively
+
+```{r}
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy), color = "blue") +
+  facet_grid(.~manufacturer)
+```
+

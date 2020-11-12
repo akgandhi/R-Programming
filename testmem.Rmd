@@ -1,0 +1,43 @@
+---
+title: "Memory Tests in Markdown"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE)
+```
+
+```{r}
+x <- double(5)
+
+for (i in 1:5) {
+  tracemem(x)
+  x[[i]] <- i
+}
+x[1] <- 1
+tracemem(x)
+x[2] <- 2
+m <- matrix(0, 3, 3)
+tracemem(m)
+m[1,1] <- 1
+
+x <- sample(10); tracemem(x)
+x[[1]] <- 1L
+#tracemem(x)
+x[[1]] <- 2L
+
+x <- sample(10)
+pryr::refs(x)
+xx <- c(1L,2L,3L)
+pryr::refs(xx)
+lobstr::obj_addr(xx)
+xx[[1]] <- 5L
+lobstr::obj_addr(xx)
+pryr::refs(xx)
+tracemem(xx)
+xx[2] <- 6L
+lobstr::obj_addr(xx)
+```
+

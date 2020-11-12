@@ -1,0 +1,21 @@
+---
+title: "Tidy Evaluation"
+output: html_document
+---
+
+In programming with data, there is a general ambiguity around the concept of a variable. There are generally two forms of variables
+
+1) There is a data variable in a data set
+2) There is a programming (or environmental) variable in the computing environment
+
+When we think about analysis with data, we intersperse both concepts in the same breath. Suppose there is a variable in our data called `income` and a programming variable `x <- 10`. Then we can fluently in our minds think about the transform `income + x`. How can our code reflect the same fluency of thought?
+
+Enter tidy evaluation. Consider the following
+```{r}
+library(tidyverse)
+dataset <- tibble(income = 1:100)
+x <- 10
+dataset %>% mutate(newvar = income + x)
+```
+
+Magic you say? Almost but not exactly. The end result is certainly magical, but the principles upon which it is based are a clear extension of R's native metaprogramming capabilities that is termed *tidy evaluation* and underlies much of the functionality in the tidyverse where such programming expressions are universal. 

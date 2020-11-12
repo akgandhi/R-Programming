@@ -1,0 +1,280 @@
+---
+title: "Introduction to Tensors in TensorFlow"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+  pdf_document: default
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE)
+library(tidyverse)
+reticulate::use_condaenv("rtf")
+library(tensorflow)
+```
+# Taxonomy of Tensors
+
+What are tensors? Tensors are multi-dimensional arrays, e.g., generalizations of vectors and matrices to higher dimensions. Mathematically, tensors are objects with multiple indices, e.g., arrays of mathematical objects. A scalar object does not have an index, and a vector has one index. Hence tensors are generalizations of vectors. 
+
+It is useful to establish basic taxonomy given that references to *dimension* can be ambiguous in the context of tensors between the mathematical and software discussions of the subject. Let us fix the terminology upfront. We will use the term *axes* (or *modes* or *ways*) to reference the different indices used to reference components of a tensor (e.g, rows are the first axis, columbs the second axis, etc). Then the term *dimension* can be reserved to reference the length an each axis. The number of axes then corresponds to the *rank* or *order* of the tensors, and the *shape* of a tensor would be a vector of length equal to the rank of the tensor and whose entries are integers corresponding to the dimension of the corresponding axis. 
+
+
+
+# Tensors in R
+
+R is a beautifully clever (and cleveryly beautiful) language for data and science that we will use to explore tensors and TensorFlow. As a starting point to the language let us recall the dictum from classic *S Programming* by Venables and Ripley: "Everything in R is an object, including the functions and operators." This is also generally known as the first rule of R (expressed founder John Chambers) - **Everything that exists in R is an object**. 
+
+Every object in R has a *mode* and a *length*, which are intrinsic attributes of every R object. The fact every object has a length means they are vector-like in some fashion. The mode separates data objects from language objects. The data objects have modes that include `numeric` `integer`, `character`, `logical`, etc, whereas the language objects include `function`, `call`, `expression`, etc. 
+
+A vector in a finite dimensional real vector space is represented in R as a numeric vector. 
+
+```{r}
+v <- c(1,2,3,4)
+lv <- length(v)
+lv
+mv <- mode(v)
+mv
+tv <- typeof(v)
+tv
+```
+Its mode is `r mv` and length `r lv`. The mode `r mv` is an atomic mode reflecting the fact that all elements of the object consist of **atoms**, e.g., they are not recursive (unlike `list` objects). 
+
+Objects also have a *storage mode* given by `typeof()`. The object `NULL` is special - it has a length of zero, a mode and storage mode both "NULL". Observe that stroage mode in this case is `double` despite entering integers to form the vector `v`. Integers inputs need to be signified explicitly
+
+```{r}
+vi <- c(1L, 2L, 3L, 4L)
+mode(vi)
+typeof(vi)
+dim(vi)
+```
+
+
+All objects in R have attributes which are other objects attached to the main object but subordinate in status. Attributes can be thought about as the metadata associated with an R object. Attributes can be found en masse through a call to `attributes`
+
+```{r}
+attributes(v)
+```
+The attributes of an R object are formally a named list. 
+In this case `v` has no additional attributes beyond its mode and length and hence returns a `NULL` value. Two central attributes that can be added to a vector are the `dim` and `names` attribute.
+
+In fact, it turns out building a tensor from an vector in R is simply a matter of adding attributes to the vector. In particular tensors are formally distinguished in R (e.g., multi-index vectors) as arrays. 
+
+> An array in R can have one, two or more dimensions. It is simply a vector which is stored with additional attributes giving the dimensions (attribute "dim") and optionally names for those dimensions (attribute "dimnames").*
+
+Thus defining characteristic of an array is that it has a dimension attribute, which can be added to a vector through the use of a **replacement function** ``dim<-`()`. 
+
+```{r}
+dim(v) <- c(2,2)
+attributes(v)
+is.array(v)
+is.vector(v)
+```
+Observe that the `dim(v) <- c(2,2)` statement is a reference to a replacement function, e.g., a function call on the LHS of an assignment operator, which may appear odd at first glance though intuitive as to the intent of the command.  To understand the hidden presence of a replacement function in this statement, it helps to recall the second rule of R: **Everything that happens in R is a function call**. Hence `dim(v) <- c(2,2)` is a function call in disguise. What is that call. 
+
+```{r}
+v <- c(1,2,3,4)
+v <- `dim<-`(v,c(2,2))
+attributes(v)
+is.array(v)
+```
+
+
+We can further assign a `names` attribute as well (which for arrays is a `list` object associated with the `dimnames` attribute)
+```{r}
+dimnames(v) <- list(c("a", "b"), c("d", "e"))
+v
+```
+
+We can build an array alternatively by generically packaging the data and attributes through the `structure` function
+
+```{r}
+v <- structure(c(1,2,3,4), dim = c(2,2), dimnames = list(c("a", "b"), c("d", "e") ))
+is.array(v)
+```
+
+Finally we can directly use the `array` function which is more readable shorthand for the above
+
+```{r}
+v <- array(c(1,2,3,4), dim = c(2,2), dimnames = list(c("a", "b"), c("d", "e") ))
+v
+```
+
+
+Thus although a vector without a `dim` attribute set may intuitively be thought of as 1-dimensional array,  a pure vector in R would actually have a `NULL` for its dimensions attribute, and thus technically distinct from a one dimensional array. We can remove the `dim` attribute by
+
+```{r}
+dim(v) <- NULL
+attributes(v)
+is.array(v)
+is.vector(v)
+```
+We could alternatively explicitly define a rank 1 tensor
+
+```{r}
+v <- array(c(1,2,3,4), dim = c(4))
+length(dim(v)) #this is the rank of the tensor
+dim(v) #this is the shape of the tensor
+length(v) #this is the number of elements in the tensor
+is.array(v)
+is.vector(v)
+str(v)
+str(v %>% `dim<-`(NULL))
+```
+Observe the difference in object structure between the vector and the rank-1 array. 
+
+Finally, we can reshape a tensor directly by altering its `dim` attribute
+
+```{r}
+dim(v) <- c(2,2)
+v
+```
+Notice that it reshapes in accordance with *column major* order. To instead re-shape along *row major* order that is more prevalent in 
+```{r}
+dim(v) <- NULL
+array_reshape(v, dim = c(2,2))
+```
+## Array Subsetting and Slicing
+Array subsetting is a natural generalization of vector subsetting. 
+
+Provide a review
+
+
+There is one subsetting convention that is unique to arrays (and not shared by vectors). We can extract a vector of elements from the array by giving subsetting the array with a matrix argument (each row corresponding to one multi-index and the sequence of rows thus equating to a vector). Such matrix subsetting can be used for extraction or replacement. 
+
+From subsetting we can develop a mode-n fiber and slicing.
+
+```{r}
+v <- rnorm(100) %>% `dim<-`(c(50,2))
+v[1:3,]
+select <- matrix(nrow = 2, byrow = TRUE, c(
+  2,1,
+  2,2
+))
+str(v[select])
+v[select] <- c(0,0)
+v[1:3,]
+```
+
+## MNIST Array Data
+
+Lets load the MNIST data and examine the structure of its constitutent tensors
+
+```{r}
+library(keras)
+mnist <- dataset_mnist()
+str(mnist)
+```
+Observe that the datasets provided by Keras are structured as nested lists of training and test data, and thus the assignment of tensors to these building blocks is simplified by the multiassignment operator `%<-%`. 
+
+```{r}
+c(c(train_data, train_labels), c(test_data, test_labels)) %<-% mnist
+length(dim(train_data))
+dim(train_data)
+typeof(train_data)
+dim(train_labels)
+image1 <- train_data[1,,]
+dim(image1)
+```
+
+The first training point `image1` has shape `r dim(image1)`. We can get a sense of the data from printing it. 
+```{r, fig.width=10}
+image <- as.matrix(image1)
+rownames(image) <- as.character(1:28)
+colnames(image) <- as.character(1:28)
+knitr::kable(image, width = "20em")
+```
+
+```{r}
+plot(as.raster(image1, max = 255))
+```
+What exactly is this image?
+
+```{r}
+train_labels[1]
+```
+
+# What are Tensors as Mathematical Objects
+
+We have defined tensors as computational objects. What is their meaning as mathematical objects. At a basic level they are simply elements of a suitably defined vector space. In particular, An $N$ dimensional array can be mathematically associated with $N^{th}$ order tensor array in mathematical terms. Each such array is an element of a vector space formed as the tensor product of $N$ vector space. If the $i^{th}$ vector space has dimension $d_i$, then the dimension of the tensor is $(d_1,\dots,d_n)$. 
+
+
+# Tensors in TensorFlow
+
+```{r}
+x <- matrix(2, ncol = 1, nrow = 1)
+m <- tf$matmul(x, x)
+m
+quantity <- tf$Variable(0.0, dtype=tf$float64, name="quantity")
+profit <- (90.0 * quantity) - (quantity * quantity)
+profit
+neg_profit <- 0.0 - profit
+A <- tf$constant(array(c(3,2,5,2), dim = c(2,2)))
+B <- tf$constant(array(c(9,5,1,3), dim = c(2,2)))
+tf$concat(list(A,B), axis = 1L)
+tf$concat(list(A,B), axis = 0L)
+zerotensor <- tf$zeros(shape=shape(3,4), dtype=tf$int32)
+zerotensor$numpy()
+```
+
+```{r}
+library(tfprobability)
+tfd_uniform(low=0.0, high=1.0) %>% tfd_sample(sample_shape = shape(10,10)) %>% tf$reduce_prod(axis = 1L)
+```
+
+
+```{r}
+tf$ones(shape = 10L)
+x <- tf$random$uniform(shape(3, 3))
+x
+tf$config$experimental$list_physical_devices()
+tf$optimizers$SGD(1e-2)
+tf$`function`
+```
+
+```{r}
+hello <- tf$constant("Hello, World!")
+W1 <- tf$ones(shape(2,2))
+test <- function(a) {
+  a^2
+}
+test(2)
+test2 <- tf_function(test)
+test2(2)
+test2(matrix(c(1,2,3,4), nrow = 2))
+typeof(test2(matrix(c(1,2,3,4), nrow = 2)))
+test3 <- tf$ones(shape = shape(2))
+test3 * test3
+```
+
+```{r}
+x <- tf$Variable(1.0)  # Create a Tensorflow variable initialized to 1.0
+
+with(tf$GradientTape() %as% t, {
+  
+  with(tf$GradientTape() %as% t2, {
+    y <- x*x*x
+  })
+  
+  # Compute the gradient inside the 't' context manager
+  # which means the gradient computation is differentiable as well.
+  dy_dx <- t2$gradient(y, x)
+  
+})
+
+d2y_dx <- t$gradient(dy_dx, x)
+
+dy_dx
+```
+
+```{r}
+#create a gradient tape context
+x <- tf$constant(c(1,2))
+x
+with (tf$GradientTape() %as% g, {
+      g$watch(x)
+      y <- x*x
+})
+jacob <- g$jacobian(y,x)
+jacob$numpy()
+```

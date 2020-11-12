@@ -1,0 +1,327 @@
+---
+title: "Programming with Data: The Three Deep Truths of R"
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: github
+bibliography: bibliography.bib
+---
+
+```{r, include = FALSE }
+knitr::opts_chunk$set(collapse = TRUE)
+library(tidyverse)
+```
+
+
+
+# Introduction
+
+R is a rich software language for "programming with data" to quote the chief designer John Chambers [@chambers1998programming] of the precursor and inspiration for R - the S programming language. While diverse in its applications, R is based on a few unifying design principles that allows one to separate the forest from the trees in developing R software for solving a problem. A useful summary of these principles for understanding the behavior of R code is captured by the memorable [slogans](https://www.r-bloggers.com/three-deep-truths-about-r/):
+
+1. 
+>Everything in R is an object. 
+>
+> --- John Chambers
+
+2. 
+>Everything that happens in R is the result of a function call. 
+>
+> --- John Chambers
+
+3. 
+>Names have objects, objects don't have names. 
+>
+> --- Hadley Wickham
+
+
+We will refer to these principles as the *deep truths* of R. Although these principles are omnipresent in R, they are reaffirmed and take center stage in the jump from "base R" (the original, core R language) to "modern R" as formalized by the **Tidyverse** ecosystem of packages.^[The tidyverse is a standardization and formalization of functional and meta-programming capabilities of R. The popularization and resurgence of R through the tidyverse owes an unusual amount to the influential packages and writings of Hadley Wickham - the author of *Advanced R* and co-author of *R for Data Science*.] 
+
+The first of these principles is arguably the most important to initiate an understanding of the full trilogy, and we begin our discussion there. 
+
+# Everything in R is an Object
+
+
+Every entity that gets used in R is an object of some kind, and all computations involve constructing and manipulating objects in some form. 
+
+However, the word "object" has many connotations in computer programming, particularly in relation to "object-oriented programming". Hence it is crucial to recognize the more general meaning of objects in R. 
+
+
+"Everything in R is an object" in the sense of being a data structure that can be manipulated and analyzed. As @chambers1998programming writes, an object in R is a "dynamically created, self-describing container for data".
+
+When complemented with the fact that R is a language designed to "program with data", this means that everything in R is analyzable as a data.  
+
+This is arguably what fundamentally distinguishes R from other languages - it achieves the capabilities of general purpose programming language through a paradigm that is centered around data structures and analysis of those structures. 
+
+
+There are certain universal data characteristics shared by all objects. Every object in R has (1) a *mode* or *type* and (2) a *length*. These are intrinsic attributes of every R object. 
+
+```{r, collapse=TRUE}
+mode(1:10) #mode
+typeof(1:10) #type
+length(1:10) #length
+```
+
+
+All other attributes of an R object are should be seen as metadata associated with the object. This metadata is attached to the main object but subordinate in status. These attributes can be found en masse through a call to `attributes`
+
+```{r}
+attributes(1:10)
+```
+In this case the object has no additional attributes beyond its intrinsic attributes and hence the call returns a `NULL` value. More generally, attributes are represented as a named list in R and can have value `NULL`
+
+```{r}
+x <- matrix(1:9, nrow = 3)
+attributes(x)
+typeof(attributes(x))
+```
+
+The fact every object has a length means they are vector-like in some fashion and can be approached as a data structure, e.g., we can access, manipulate, and analyze any R object through common data techniques, e.g., the data underlying an object  `x` can be examined via a subsetting operation `x[[i]]` for `i` from `1:length(x)`.  
+
+
+Of course, the interpretation of this data depend on the object type. The mode or type separates (1) data objects from (2) language objects. The data objects have modes that include `numeric` `integer`, `character`, `logical`, etc, whereas the language objects include `function`, `call`, `expression`, etc. Whereas the *mode* attribute was central to R's precursor language S, object types are a more common to distinguish different families of objects. The type of an object we will reference as its *base type* (to distinguish from what we will later discuss as the object's "class", which is an enrichment of the object's base type).
+
+There are a fixed set of 25 types defined by core-R. They are listed below, categorized by their distinct data interpretation.
+
+*   Vectors include types `NULL`, 
+    `logical`, `integer`, `double`, `complex`, `character`, `list`, and `raw`.
+    
+    ```{r}
+    typeof(NULL)
+    typeof(1L)
+    typeof(1i)
+    ```
+
+*   Functions include types `closure` (regular R 
+    functions), `special` (internal functions), and 
+    `builtin` (primitive functions).
+    
+    ```{r}
+    typeof(mean)
+    typeof(`[`)
+    typeof(sum)    
+    ```
+    
+    
+
+*   Environments have type `environment`.
+
+    ```{r}
+    typeof(globalenv())
+    ```
+
+*   The `S4` type is used for S4 classes that 
+    don't inherit from an existing base type.
+   
+    ```{r}
+    mle_obj <- stats4::mle(function(x = 1) (x - 2) ^ 2)
+    typeof(mle_obj)
+    ```
+
+*   Language components include `symbol` (aka 
+    name), `language` (usually called calls), and 
+    `pairlist` (used for function arguments) types.
+
+    ```{r}
+    typeof(quote(a))
+    typeof(quote(a + 1))
+    typeof(formals(mean))
+    ```
+ 
+    `expression` is a special purpose type that's only returned by
+    `parse()` and `expression()`. Expressions are generally not needed in user 
+    code.
+ 
+*   The remaining types are esoteric and rarely seen in R. They are important 
+    primarily for connections to C code: `externalptr`, `weakref`, 
+    `bytecode`, `promise`, `...`, and 
+    `any`.
+    
+
+
+## Names Have Objects, Objects Don't Have Names
+
+*The primary purpose of programming in R is the creation and manipulation of objects.* R is at heart a functional programming language, and hence the process by which this works is applying functions to objects to yield new objects. Successive applications of a series of functions produces the desired manipulation of the input objects. 
+
+As an example consider a function object, which is created by the evaluation of an expression of the form
+
+```{r, eval = FALSE}
+function(formal arguments) body
+```
+
+Thus consider the function
+```{r}
+function(x) x^2
+```
+
+Now suppose we want to modify the function in some fashion, for example set a default value of the formal argument `x`. We need a way to reference the object in subsequent computations. Where does the function live? How can we manipulate it?
+
+The simple answer is that objects live in computer memory. A value of a computation in general is an object residing in memory. The object's identity as a memory address, e.g, the object's *identifier* can be recovered by `lobstr::addr()`
+
+```{r}
+lobstr::obj_addr(function(x) x^2)
+```
+
+Unfortunately we cannot use the object's identifier as a basis for designing computations - this identifier will change each time we restart R and so we cannot use it to manipulate the same object in subsequent computations. Observe that multiple expression evaluations will yield distinct objects
+
+```{r}
+lobstr::obj_addr(function(x) x^2)
+lobstr::obj_addr(function(x) x^2)
+```
+
+To manipulate objects we thus need a way to reliably reference them. 
+
+Enter the key idea of an object name. An object is named through the assignment operator `name <- value`. The value of applying the assignment operator is `value` itself, but the side effect is to bind the object to a name. Thus observe we have the same object identifier given by:
+
+```{r}
+lobstr::obj_addr(f <- function(x) x^2)
+lobstr::obj_addr(f)
+```
+
+Thus the code `f <- function(x) x^2` is doing two distinct things
+1. It creates an object, namely the function `function(x) x^2`
+2. It binds the object to a name, `f`. 
+
+Hence the object itself exists independent of its name. To quote Wickham [@wickham2019advanced], "In other words, the object, or value, doesn’t have a name; it’s actually the name that has a value.".
+
+Names are objects in R and thus also exist independently of the values they bind. 
+
+We can graphically depict the relationship between names and objects as so (following @wickham2019advanced Ch 2.)
+
+```{r, echo = FALSE, out.width = NULL}
+knitr::include_graphics("../adv-r/diagrams/name-value/binding-1.png")
+```
+
+As he writes: "The name, `x`, is drawn with a rounded rectangle. It has an arrow that points to (or binds or references) the value, the vector `c(1, 2, 3)`. The arrow points in opposite direction to the assignment arrow: `<-` creates a binding from the name on the left-hand side to the object on the right-hand side."
+
+
+Names play a fundamental role in R. The only way we can refer to an object in R is by its name. More precisely, a combination of a name and a context (an object of type *environment*) allows R to evaluate a name and reference the underlying object. To appreciate the distinction, consider what happens when we evaluate a name in R. 
+```{r}
+f
+```
+The value of the expression is the function object that `f` was originally assigned. What is happening "under the hood" of R is actually subtle and worth examining. When a command is entered at the command line, the R program responds by entering a "read, parse, evaluate" loop. The user command is read and parsed and converted to a formal expression. These expressions are themselves R objects, e.g., internal representations of the user's command. This outer layer is then followed by the "core of R" and possibly the key concept to understand how R behaves and to harness its power - it is important enough to quote Chambers directly when he writes "Evaluation consists of taking the object representing an expression and returning the object that is the value of that expression" (p. 454). 
+
+Or to quote from the official R language definition [@team2000r]:
+
+>When a user types a command at the prompt (or when an expression is read from a file) the first thing that happens to it is that the command is transformed by the parser into an internal representation. The evaluator executes parsed R expressions and returns the value of the expression. All expressions have a value. This is the core of the language.
+
+Lets examine how this works in further depth. First how can we capture the expression that was created by the parser in an un-evaluated state prior to evaluation of the expression in the RPE loop. The key idea is that of quoting the expression:
+
+```{r}
+quote(f)
+typeof(quote(f))
+mode(quote(f))
+```
+We can thus see that as an expression, entering a name at the command line generates an R object of type `symbol` (or mode `name`). Hence names are also objects and can in principle be assigned to a different name, e.g., 
+
+```{r}
+x <- quote(h)
+x
+mode(x)
+typeof(x)
+```
+
+Observe the name `x` has been assigned an object value (the name `h`), but the name `h` does not have a value. 
+
+We can now manually evaluate the symbol `f` using the `eval()` function
+```{r}
+eval(f)
+```
+What if we needed to evaluate the outcome of
+```{r}
+x <- quote(h)
+eval(x)
+```
+
+
+What happens when we type a name at the command line. 
+
+objects can only be referenced through a name. Furthermore, when an object has been bound to a name, that name references the same object each time it is used barring a re-assignment. 
+
+This has core ramifications, e.g, parts of objects are distinct objects
+```{r}
+x <- 1:3
+lobstr::obj_addr(x)
+lobstr::obj_addr(x[2:3])
+```
+In fact this is a function call in disguise
+```{r}
+lobstr::ast(x[2:3])
+```
+So the object `x[2:3]` is the value of a function call, e.g, a distinct object from the argument `x` itself to this call.
+
+Which begs the question what is taking place in a line of code such as
+```{r}
+x[2:3] <- c(1,2)
+```
+
+On the surface it would appear we are changing the object that `x` is referencing - but this would break our principle that `x` should reference the same object as its original assignment. To break the mystery, syntax of the form XXX is a replacement function, and hence this is actually a re-assignment.
+
+```{r}
+body(f)
+lobstr::obj_addr(f)
+body(f) <- quote(x^2)
+lobstr::obj_addr(f)
+```
+We noted that the assignment operation had a side effect. This means that the underlying function was not a pure function. What is a pure function? As Chambers defines it (p. 44).
+
+> A pure function in R is completely specified by the value returned from a call to that function, for every possible value of the function's arguments. (p.44)
+
+Or said another way, a pure function is free of side-effects, i.e., "the value of a function call entirely defines the effects of that call". In the case of assignment `<-`, there was a clear side effect beyond the value of the function call - the binding of the object to the name. But where is this change manifest, e.g, what object is being modified?
+
+How does R know which value is being referenced by a name. What is the database it references. The answer is another data structure: an environment. Environments provide a mapping between names and values, e.g., a "bag of names" representation (the elements are not ordered per se). Environments are thus similar in structure to lists but are not ordered and hence cannot be subsetted numerically. 
+
+
+A computational session will create multiple environments and whenever there is code running there is an associated environment it is referencing - the *current environment*. While interacting with R through the command line prompt, the current environment has a special name - the *global environment*, which has a name `.GlobalEnv`.
+
+
+
+Hence the side effect of assignment `<-` is that the current environment is modified and the name-object relationship is added or changed. We can see this as follows.
+```{r}
+rlang::env_print(.GlobalEnv)
+x <- c(1,2,3)
+rlang::env_print(.GlobalEnv)
+```
+
+Thus the name `x` changes from binding a `symbol` object to a `double` object.
+
+We can also see the global environment has a *parent environment*. 
+
+A key idea for this process to work is that the name of an object is quite distinct from the object itself. The act of binding names to objects and databases of names that are linked together in a hierarchical is fundamental to computations in R. 
+
+To understand the distinction between names and objects, we begin by asking where do objects live when they are created in an R session? 
+THe simple answer is that objects live in computer memory. Values of all computations are a *value* in general is an object residing in memory. 
+
+We have already seen above how to create objects, but lets examine where they live. The address reference for an object can be recovered by `lobstr::addr()`
+```{r}
+lobstr::obj_addr(function(x) x^2)
+lobstr::obj_addr(1:10)
+lobstr::obj_addr(1:10)
+```
+
+## Everything that Happens in R is the Result of A Function Call.
+
+This the central computation through which this happens is the *evaluation* of a *function call* - which is defined by 
+1. the function itself (an object) 
+2. the objects supplied as its arguments 
+3. The evaluation of the function against its arguments which yields a value - another object. 
+
+Holding true to the first truth, the function call itself is an object - in fact, an object of type `language`. We can capture a call to a function without evaluating it by *quoting* the call, e.g., the system runs the parser to convert text to a representation in the form of a formal/internal expression, but does not evaluate the expression. 
+```{r}
+func_call <- quote(f(x))
+func_call
+typeof(func_call)
+```
+
+
+Evaluating an expression- e.g., actually calling the function - yields objects. 
+```{r}
+f
+x
+eval(func_call) 
+```
+
+
+These objects can be manipulated and modified by subsequent expressions.
+
+The primary goal of computations in R is the creation and manipulations of objects. The central computation through which this happens is the *evaluation* of a *function call* - which is defined by the function itself (an object) and the objects supplied as its arguments which is evaluated to yield a value - another object. Holding true to the first truth, the function call itself is an object, and thust the language itself can be computed upon, e.g., meta-programming. 
+
